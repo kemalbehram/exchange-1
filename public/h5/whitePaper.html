@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">		
+		<link rel="stylesheet" href="css/common.css">
+		<!-- <title></title> -->
+		<title>CastprofitEx    </title>
+		<style>
+			.pdf{
+			  text-align:center;
+			  width: 100%;
+			  padding-bottom: 15px;
+			  background: #51565b !important;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="header">
+			<a class="back" href="javascript:history.go(-1)">
+			</a>
+			<h4 class="ftw ft16" data-localize="footer.whitePaper">白皮书</h4>
+		</header>
+		<div class="pdf">
+			<div class="pdfurl">
+				<!-- <embed src="" width="100%" height="800" class="pdfurl"> -->
+			</div>
+		  
+		  <p class="arrow" style="text-align:center;color:#000;margin: 20px 0 20px 0;">
+		
+		  </p>
+		</div>
+		
+		<script type="text/javascript" src="lib/jquery-2.1.1.min.js"></script>
+		<script type="text/javascript" src="lib/vue.min.js"></script>
+		<script src="javascripts/main.js"></script>
+		<script src="./lib/jquery.localize.min.js"></script>
+		<script src="./lib/language_cookie.js"></script>
+		<script type="text/javascript">
+			var vue = new Vue({
+					el: '#app',
+					data: {
+						tabList: [],
+						detailList: [],
+						selectId: 0,
+					},
+					filters: {
+						toFixeds: function(value) {
+							value = Number(value);
+							return value.toFixed(2);
+						},
+						toFixed2: function(value, options) {
+							value = Number(value);
+							return value.toFixed(3);
+						}
+					},
+					mounted: function() {
+						let that = this;
+					},
+					methods: {
+					}
+				});
+			
+				//===============PDF======================
+				var id = request('id');
+				
+				$.ajax({
+				    type: 'post',
+				    url: _API + 'news/detail',
+				    dataType: 'json',
+				    data: {
+				        id:id
+				    },
+				    success: function (data) {
+						// console.log(data)
+						var aurl = data.message.content
+						var reg = /<a[^>]*href[=\"\'\s]+([^\"\']*)[\"\']?[^>]*>/gi;
+						while(reg.exec(aurl));
+						var pdfurl = RegExp.$1;
+				        console.log(pdfurl)
+						// console.log($(".pdfurl").html())
+						var str = "<embed src='"+pdfurl+"' width='100%' height=800'>";
+						// console.log(str)
+						$('.pdfurl').html(str);
+				       
+				    }
+				});
+				
+				//==================获取地址后缀======================
+				function request(key) {
+				    var url = location.search; //获取url中"?"符后的字串
+				    var theRequest = {};
+				    if (url.indexOf("?") != -1) {
+				        var str = url.substr(1);
+				        strs = str.split("&");
+				        for(var i = 0; i < strs.length; i ++) {
+				            theRequest[strs[i].split("=")[0]] = unescape(strs[i].split("=")[1]);
+				        }
+				    }
+				    return theRequest[key] || null;
+				}
+			
+		</script>
+	</body>
+</html>

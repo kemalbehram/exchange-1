@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <link href="https://cdn.bootcss.com/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<textarea class="form-control" name="" id="pre" cols="30" rows="10"></textarea>
+
+<div style="text-align: center;">
+    <button class="btn btn-success btn-replace">replace</button>
+
+</div>
+<textarea class="form-control" id="result" cols="30" rows="10"></textarea>
+
+<script type="text/javascript">
+    $('.btn-replace').on('click', function() {
+        let content = $('#pre').val().replace(/\n{3,}/g, '###################');
+        content = content.replace(/\n{2,}/g, '\n');
+        content = content.replace(/###################/g, '\n');
+        // content = content.replace(/\n{2,}/g, '')
+        //     .replace(/###################/g, '\n');
+        // content = content.replace(/\n{2,}/g, '<br/>');
+       // content = content.replace(/###################/g, '<br /><br/>');
+       // $('#result').val(`<div style="font-size:14px;line-height: 18px;font-weight: normal;">${content}</div>`);
+    });
+</script>
+</body>
+</html>

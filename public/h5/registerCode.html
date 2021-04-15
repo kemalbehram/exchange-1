@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no">
+    <title>注册邀请</title>
+    <style>
+    html{font-size: 100px;font-family: -apple-system,SF UI Display,Arial,PingFang SC,Hiragino Sans GB,Microsoft YaHei,WenQuanYi Micro Hei,sans-serif;}
+    *{margin:0;padding:0;font-family: pingFang-SC-Regular;list-style: none;-webkit-appearance: none;}
+    #box{
+        width:100%;
+        height:100%;
+        background:#fff;
+        overflow: hidden;
+    }
+    .header{width:100%;height:1rem;background:#fff;font-size:0.32rem;text-align: center;line-height: 1rem;position: relative;}
+    .header img{width:0.4rem;height:0.4rem;position: absolute;left:5%;top:0.3rem;}
+    .content{width:100%;height:100%;background:url('../images/bg_bendi_hongbao.png') no-repeat;background-size: 100%;}
+    .top{position: relative;}
+    .oImg{width:1rem;height:1rem;margin:0.5rem 0 0.5rem 0;border:1px solid #dddddd;border-radius: 50%;margin-left: 10px;}
+    .currency_name{position: absolute;display: inline-block;font-size: 0.32rem;right: 0;top:0.5rem;width:80%;margin-left: 0.5rem}
+    .receive{position: absolute;top:3px;color:#fff;}
+    .form{position: relative;top:28px;color:#fff;font-size: 0.28rem;}
+
+
+
+    .main{display: block;width:100%;text-align: center;position: relative;margin-top: 10%;}                      
+    .main img{width:80%;height:50%;position: relative;}
+
+    .result_main{display: block;width:100%;text-align: center;position: relative;}                      
+    .result_main img{width:80%;height:50%;position: relative;}    
+    .results{width:60%;margin-left: 20%;text-align: center;color:#fff;position:absolute;top:10%;font-size: 0.3rem; }
+    .amount{width:60%;margin-left: 20%;text-align: center;color:#fff;position:absolute;top:30%;font-size: 0.5rem; }
+    .tips{width:60%;margin-left: 20%;text-align: center;color:#fff;position:absolute;top:50%;font-size: 0.25rem; }
+
+    .detail{color:#666;text-align: center;margin-top:10px;}
+    .main .Redphoto{position: absolute;width:1.5rem;height:1.5rem;left:calc(50% - 0.74rem);top:20%;}
+    .main .Redphoto img{width:100%;height:100%;border-radius: 50%;}
+    .wishes{width:60%;margin-left: 20%;text-align: center;color:#fff;position:absolute;bottom:40%;font-size: 0.33rem; }
+    .lingqu{width:60%;height:1rem;background:#fff;line-height:1rem;text-align: center;color:rgb(249,50,70);border-radius: 4px;font-size: 0.28rem;position: absolute;top:65%;left:20%;}    
+    .footer{
+	    width: 70%;
+	    height: 1rem;
+	    line-height: 1rem;
+	    text-align: center;
+	    border-radius: 4px;
+	    font-size: 0.32rem;
+	    position: relative;
+	    margin: 0 auto;
+	    color: #fff;
+	    color: #fff;
+	    padding: 0 0.5rem;
+	    background: url('../images/button_bg.png') no-repeat;
+	    background-size: 100% 100%;
+	    margin-top: 0.4rem;
+    }
+
+    .mark{width:100%;background:z-index: 4;position: absolute;top:0;left:0;}
+    .message{width:90%;position: relative;top:10%;background:#fff;left:5%;border-radius: 5px;}
+    .message-title{height:20px;padding-top: 15px;font-size: 16px;width:100%;text-align: center;}
+    .close_img{height:16px;width:16px;right: 15px;position: absolute;}
+    .input_box{
+	    width: 70%;
+	    height: 1rem;
+	    margin-top: 0.2rem;
+	    background: #f9f9f9;
+	    border: 1px solid #d53036;
+	    outline: none;
+	    padding: 0 0.5rem;
+	    border-radius: 0.1rem;
+	    color: #d53036;
+	    font-size: 0.28rem;
+	    position: relative;
+	    left: 7%;
+    }
+    .code{width:100%;position: relative;}
+    .code_p{width:45%;margin-top:0;margin-right:6%;padding:0;text-indent: 2em;}
+    .reg_code{
+		padding: 0.25rem 0;
+		border: 1px solid #d53036;
+		color: #d53036;
+		font-size: 0.28rem;
+		border-radius: 0.08rem;
+		width: 36%;
+		text-align: center;
+		display: inline-block;
+		background-color: #f9f9f9;
+    }
+    </style>
+
+</head>
+<body>
+    <div id="box">
+        <div class="content" >
+            <span class='result_main' id="result_main">
+                <img src="../images/bg_bendi_hongbao.png" alt="" >
+                <p class="results"></p>
+                <p class="amount"></p>
+                <p class="tips"></p>
+            </span>
+        </div>
+    </div>
+    <div class="mark">
+        <div class="message">
+            <div class="message-title">
+                <span style="font-size: 17px; line-height: 25.5px; font-weight: 600; color: #d53036;">注册邀请</span>
+            </div>
+            <input type="text" id="mobile" placeholder="请输入手机号码" class="input_box" value="">
+            <div class="code">
+                <input type="text" id="code" placeholder="请输入验证码" class="input_box code_p" value="">
+                <span @click="getCode()">
+                    <input type="button" class="obtain generate_code reg_code" value=" 获取验证码" id="sendbtn" onclick="settime();">
+                    <!-- <span class="reg_code" v-show="!show">获取验证码</span> -->
+                </span>
+            </div>
+            <input type="text" id="pass" placeholder="请输入密码" class="input_box" value="">
+            <input type="text" id="repass" placeholder="请输入重复密码" class="input_box" value="">
+            <input type="text" id="extensionCode" placeholder="邀请码" class="input_box" value="">
+            <div class="footer" onclick="loginSuccess()" style="">立即注册</div>
+            <div class="footer" id="footer" style="background: none;"><a href="http://www.jiayouint.com/app/" style="text-decoration:none;color:#d53036">下载CastprofitEx    </t应用</a>
+    	</div>
+    </div>
+    
+    <script src="lib/jquery-2.1.1.min.js"></script>
+    <script src="./lib/fastclick.js"></script>
+    <script src="lib/bootstrap.min.js"></script>
+    <script src="lib/layer_mobile/layer.js"></script>
+    <script src="./lib/jquery.localize.min.js"></script>
+    <script src="./lib/language_cookie.js"></script>
+    <script src="javascripts/jquery.cookie.js"></script>
+    <script src="javascripts/main.js"></script>
+    <script src="javascripts/country.js"></script>
+    <script>
+        var id = '';
+        var key = '';
+        var code = '{$code}';
+        var mark = '';
+        var token = "";
+        var check = false;
+        var hasOpened = false;
+        (function (doc, win) {
+            var docEl = doc.documentElement
+            var resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize'
+            var recalc = function () {
+                var clientWidth = docEl.clientWidth;
+                if (!clientWidth) return;
+                if (clientWidth >= 750) {
+                    docEl.style.fontSize = '100px';
+                } else {
+                    docEl.style.fontSize = 100 * (clientWidth / 750) + 'px';
+                }
+
+                h = document.documentElement.clientHeight+'px';
+                var oBox = document.getElementById('box');
+                mark = document.querySelector('.mark');
+
+                oBox.style.height = h;
+                mark.style.height = h;
+
+                var result_main = document.getElementById('result_main');
+                var main = document.getElementById('main');
+                result_main.style.display = 'none';
+                //main.style.display = 'block';
+                function GetRequest() { 
+                    var url = location.search; //获取url中"?"符后的字串 
+                    var theRequest = new Object(); 
+                    if (url.indexOf("?") != -1) {
+                        var str = url.substr(1); 
+                        strs = str.split("&"); 
+                        for(var i = 0; i < strs.length; i ++) {
+                            theRequest[strs[i].split("=")[0]]=unescape(strs[i].split("=")[1]); 
+                        } 
+                    } 
+					console.log(theRequest)
+                    return theRequest; 
+                } 
+                var req = GetRequest(); 
+                var language = req['language'];
+            };
+
+            if (!doc.addEventListener) return;
+            win.addEventListener(resizeEvt, recalc, false);
+            doc.addEventListener('DOMContentLoaded', recalc, false);
+        })(document, window);
+
+        function login(){
+            if(token != ""){
+                if(check && !hasOpened){
+                    hasOpened = true;
+                    httpOpen()
+                }
+                return
+            }
+            $('.mark').css('display','block');
+            // if(mark.style.display == 'none' || mark.style.display == ''){
+            //     mark.style.display = 'block';
+            // }else if(mark.style.display == 'block'){
+            //     mark.style.display = 'none';
+            // }
+        }
+        function unlogin(){
+            $('.mark').css('display','block');
+             // mark.style.display = 'none';
+        }        
+        var countdown=60; 
+        var timer ; 
+
+        function settime() {  
+            // var mobile = $('.input_box').val();
+            if(mobile == ''){
+                Toast('手机号不能为空',2000)
+            }else{
+                httpSendCode(mobile);
+            }
+        }
+        function startTimer(){
+            if (countdown == 0) {  
+                $('#sendbtn').removeAttr("disabled");  
+                $('#sendbtn').val("重新获取验证码");  
+                countdown = 60;  
+                clearInterval(timer)
+                return false;  
+            } else {  
+                $('#sendbtn').attr("disabled",true);  
+                $('#sendbtn').val("发送(" + countdown + ")s");  
+                countdown--;  
+            }  
+                    
+        }
+        function httpDoLogin(username,verification_code){
+
+        }
+
+        function httpCheck(){
+            $.ajax({
+                headers: {
+                    'XX-Token': token,
+                    'XX-Device-Type':'web'
+                },
+                type: "POST",
+                url: "/api/wallet/red_envelope/checkOpen",
+                data: 'red_envelope_id='+id+"&red_envelope_key="+key,
+                success: function (data) {
+                    if(data.code == 1){
+                        check = true;
+                    }else{
+                        check = false;
+                       result_main.style.display = 'block';
+                       main.style.display = 'none';                          
+                        $('.results').text(data.data.result.msg);
+                        if(data.data.self_envelope_data.have == 1){
+                           $('.amount').text(data.data.self_envelope_data.amount+ " " + data.data.self_envelope_data.coin_symbol);
+                           $('.tips').text("使用手机号和密码登陆ETBank APP领取(新用户的账户初始密码会以短信形式发送)" );
+                        }
+                
+                        Toast(data.msg,2000);
+                      
+                    }
+                }
+            });
+        }
+
+        function httpOpen(){
+            $.ajax({
+                headers: {
+                    'XX-Token': token,
+                    'XX-Device-Type':'web'
+                },
+                type: "POST",
+                url: "/api/wallet/red_envelope/open",
+                data: 'red_envelope_id='+id+"&red_envelope_key="+key,
+                success: function (data) {
+                    if(data.code == 1){
+                       result_main.style.display = 'block';
+                       main.style.display = 'none';                        
+                       Toast(data.msg,2000);
+                       $('.results').text(data.msg);
+                         $('.amount').text(data.data.amount+ " " + data.data.coin_symbol );
+                        $('.tips').text("使用手机号和密码登陆ETBank APP领取(新用户的账户初始密码会以短信形式发送)" );    
+                    }else{
+                        Toast(data.msg,2000);
+                    }
+                }
+            });
+        }
+
+         function httpSendCode(username){
+			var phone = $("#mobile").val();
+			 
+            $.ajax({
+                type: "POST",
+                url: _API + "sms_send",
+                data: {
+                    "user_string": phone,
+                    "scene": 'register'
+                },
+                success: function (data) {
+                    if(data.code == 1){
+                        Toast(data.msg,5000);
+                        timer = setInterval(function() {  
+                            startTimer();
+                        },1000);
+                    }else{
+                        Toast(data.msg,2000);
+                    }
+                    
+                }
+            });
+        }
+
+        function Toast(msg,duration){
+            duration=isNaN(duration)?3000:duration;
+            var m = document.createElement('div');
+            m.innerHTML = msg;
+            m.style.cssText="width: 60%;min-width: 150px;opacity: 0.7;height: 30px;color: rgb(255, 255, 255);line-height: 30px;text-align: center;border-radius: 5px;position: fixed;top: 40%;left: 20%;z-index: 999999;background: rgb(0, 0, 0);font-size: 12px;";
+            document.body.appendChild(m);
+            setTimeout(function() {
+                var d = 0.5;
+                m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
+                m.style.opacity = '0';
+                setTimeout(function() { document.body.removeChild(m) }, d * 1000);
+            }, duration);
+        }  
+        function loginSuccess(){
+            var mobile = $('#mobile').val();
+			var code = $('#code').val();
+			var pass = $('#pass').val();
+			var repass = $('#repass').val();
+			var mobile = $('#mobile').val();
+			var extensionCode = $("#extensionCode").val();
+			
+            if(mobile == ''){
+                Toast('手机号不能为空',2000)
+                return;
+            }
+            if(pass == ''){
+                Toast('密码不能为空',2000)
+                return;
+            }
+            if(repass == ''){
+                Toast('重复密码不能为空',2000)
+                return;
+            }
+            if(repass != pass){
+                Toast('密码输入不一致',2000)
+                return;
+            }
+			
+			var post_data={
+				"user_string": mobile,
+				"password":pass,
+				"re_password": repass,
+				"type": "mobile",
+				"code": code,
+				"country_code":"+86",
+				"nationality":"China",
+				"extensionCode":extensionCode,
+				lang:lg
+			}
+			
+            $.ajax({
+                type: "POST",
+                url: _API + "user/register",
+                data: post_data,
+                success: function (data) {
+                    if(data.type == "ok"){
+                        Toast(data.message.msg,1000);
+                        window.location.href = 'http://www.jiayouint.com/app/';
+                    }else{
+                        Toast(data.message,1000);
+                    }
+                }
+            });
+        }
+    </script>
+    
+</body>
+</html>
