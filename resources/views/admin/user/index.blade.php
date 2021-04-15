@@ -20,6 +20,10 @@
         <i class="layui-icon layui-icon-user"></i>
         <span>推荐关系</span>
     </button>
+    <button class="layui-btn layui-btn-primary" id="add_user">
+        <i class="layui-icon layui-icon-user"></i>
+        <span>添加用户</span>
+    </button>
     <table id="userlist" lay-filter="userlist"></table>
 @endsection
 
@@ -65,6 +69,8 @@
                     ,zIndex: parent.layer.zIndex
                 });
             });
+
+            $('#add_user').click(function(){layer_show('添加会员', '/admin/user/add');});
             /*$('#add_user').click(function(){layer_show('添加会员', '/admin/user/add');});*/
 
             form.on('submit(mobile_search)',function(obj){

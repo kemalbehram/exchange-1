@@ -56,7 +56,7 @@
             form.on('submit(demo1)', function(data){
                 var data = data.field;
                 $.ajax({
-                    url:'{{url('admin/user/add')}}'
+                    url:'{{url('admin/user/doadd')}}'
                     ,type:'post'
                     ,dataType:'json'
                     ,data : data

@@ -54,9 +54,9 @@ class LoginController extends Controller
         if (empty($user)) {
             return $this->error('User Not Found');
         }
-        if (!filter_var($user_string, FILTER_VALIDATE_EMAIL) && $country_code != $user->country_code) {
-            return $this->error('User Does Not Exist,Please Check Whether The Area Code Is Consistent');
-        }
+//        if (!filter_var($user_string, FILTER_VALIDATE_EMAIL) && $country_code != $user->country_code) {
+//            return $this->error('User Does Not Exist,Please Check Whether The Area Code Is Consistent');
+//        }
         if ($type == 1) {
             if (Users::MakePassword($password) != $user->password) {
                 return $this->error('Wrong Password');

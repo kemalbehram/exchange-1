@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\DAO\UserDAO;
+use App\Events\UserRegisterEvent;
 use App\Exports\FromQueryExport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Models\{Address, AccountLog, Currency, Users, UserCashInfo, UserReal, UsersWallet};
+use App\Models\{Address, AccountLog, Agent, Currency, Setting, Users, UserCashInfo, UserReal, UsersWallet};
 
 class UserController extends Controller
 {
@@ -35,6 +37,91 @@ class UserController extends Controller
             })->orderBy('id', 'desc')
             ->paginate($limit);
         return $this->layuiData($list);
+    }
+
+    public function add(Request $request)
+    {
+        return view('admin.user.add');
+    }
+
+    public function doadd(Request $request)
+    {
+        $phone = request()->input("phone", '');
+        $email = request()->input("email", '');
+        $password = request()->input("password", '');
+        $parent = request()->input("parent", '');
+        $country_code = request()->input('country_code', '86');
+        $nationality = request()->input('nationality', '');
+
+//        if (empty($phone) || empty($email) || empty($password) || empty($parent)) {
+//            return $this->error("参数错误");
+//        }
+
+        if (!empty($phone) && !empty($email)) {
+            return $this->error("手机号和邮箱只能填一个");
+        }
+
+        if(!empty($phone)){
+            $user_string = $phone;
+        }
+
+        if(!empty($email)){
+            $user_string = $email;
+        }
+
+        $country_code = str_replace('+', '', $country_code);
+
+        if (mb_strlen($password) < 6 || mb_strlen($password) > 16) {
+            return $this->error('The Password Can Only Be Used In6-16Between Bits');
+        }
+
+        $user = Users::getByString($user_string, $country_code);
+        if (!empty($user)) {
+            return $this->error('Account Number Already Exists');
+        }
+
+        //获取推荐人id
+        $parent_id = 0;
+        if(!empty($parent)){
+            $parentUser = Users::where('email' , '=' , "$parent")->orwhere('phone' , '=' , "$parent")->first();
+            if(!empty($parentUser)){
+                $parent_id =   $parentUser->id;
+            }
+        }
+
+        $salt = Users::generate_password(4);
+
+        $users = new Users();
+        $users->password = Users::MakePassword($password);
+        $users->parent_id = $parent_id;
+        $users->type = 1;
+        $users->account_number = $user_string;
+        $users->country_code = $country_code; //Update Country Code
+        $users->nationality = $nationality; //Renewal Of Nationality
+        if (!empty($phone)) {
+            $users->phone = $phone;
+        } else {
+            $users->email = $email;
+        }
+        $users->head_portrait = URL("mobile/images/user_head.png");
+        $users->time = time();
+        $users->extension_code = Users::getExtensionCode();
+        DB::beginTransaction();
+        try {
+            $users->parents_path = $str = UserDAO::getRealParentsPath($users); //Generateparents_path     tian  add
+            //Agent Nodeid。Mark The Superior Agent Node Of The User。Agents HereidYesagentPrimary Key In Agent Table，Not At AllusersIn The Tableid。
+            $users->agent_note_id = Agent::reg_get_agent_id_by_parentid($parent_id);
+            //Agent Node Relationship
+            $users->agent_path = Agent::agentPath($parent_id);
+            $users->save(); //Save TouserIn The Table
+            event(new UserRegisterEvent($users));
+
+            DB::commit();
+            return $this->success('添加成功');
+        } catch (\Exception $ex) {
+            DB::rollBack();
+            return $this->error($ex->getMessage());
+        }
     }
 
     public function edit(Request $request)

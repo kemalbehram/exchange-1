@@ -145,11 +145,11 @@ class Users extends Model
                 ->orwhere('email', $string)
                 ->orWhere('account_number', $string);
         })
-            ->when($country_code != '', function ($query) use ($string,$country_code) {
-                if (!filter_var($string, FILTER_VALIDATE_EMAIL)) {
-                    $query->where('country_code', $country_code);
-                }
-            })
+//            ->when($country_code != '', function ($query) use ($string,$country_code) {
+//                if (!filter_var($string, FILTER_VALIDATE_EMAIL)) {
+//                    $query->where('country_code', $country_code);
+//                }
+//            })
             ->first();
     }
 
