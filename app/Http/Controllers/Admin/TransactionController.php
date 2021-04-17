@@ -488,33 +488,6 @@ class TransactionController extends Controller
             return $this->error("Data Not Found");
         }
 
-        //UseJAVAConduct Matchmaking
-        $use_java_match_trade = config('app.use_java_match_trade', 0);
-        if ($use_java_match_trade) {
-            $java_match_url = config('app.java_match_url', '');
-            $request_client = new Client();
-            $response = $request_client->post($java_match_url . '/api/transaction/out', [
-                'headers' => [
-                    'Authorization' => Token::getToken(),
-                ],
-                'form_params' => [
-                    'legal_id' => $legal_id,
-                    'currency_id' => $currency_id,
-                    'price' => $price,
-                    'num' => $num,
-                    'type' => 1,
-                ],
-            ]);
-
-            $result = $response->getBody()->getContents();
-            $result = json_decode($result);
-            if (!isset($result->type) || $result->type != 'ok') {
-                return $this->error($result->message);
-            }
-            DB::commit();
-            return $this->success("Operation Successful");
-        }
-
         try {
             DB::beginTransaction();
             $user_currency = UsersWallet::where("user_id", $user_id)
@@ -643,32 +616,6 @@ class TransactionController extends Controller
             return $this->error("Price And Quantity Must Be Greater Than0");
         }
 
-        //UseJAVAConduct Matchmaking
-        $use_java_match_trade = config('app.use_java_match_trade', 0);
-        if ($use_java_match_trade) {
-            $java_match_url = config('app.java_match_url', '');
-            $request_client = new Client();
-            $response = $request_client->post($java_match_url . '/api/transaction/in', [
-                'headers' => [
-                    'Authorization' => Token::getToken(),
-                ],
-                'form_params' => [
-                    'legal_id' => $legal_id,
-                    'currency_id' => $currency_id,
-                    'price' => $price,
-                    'num' => $num,
-                    'type' => 1,
-                ],
-            ]);
-            $result = $response->getBody()->getContents();
-            $result = json_decode($result);
-            if (!isset($result->type) || $result->type != 'ok') {
-                return $this->error($result->message);
-            }
-            DB::commit();
-            return $this->success("Operation Successful");
-        }
-
         try {
             DB::beginTransaction();
             //How To Buy Coin Wallet
@@ -690,6 +637,7 @@ class TransactionController extends Controller
                 ->orderBy('price', 'asc')
                 ->orderBy('id', 'asc')
                 ->get();
+
             if (count($out) > 0) {
                 foreach ($out as $o) {
                     if (bc_comp($has_num, $num) < 0) {
