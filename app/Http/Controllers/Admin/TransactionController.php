@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Exports\FromArrayExport;
+use App\Models\Token;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -434,53 +436,9 @@ class TransactionController extends Controller
 
             //查询是否存在可以撮合的订单
             if($type == 'in'){
-                //若没有相同价格的买单，则默认机器人账号为买家
-                $outSum = TransactionOut::where("price", ">=", $trade->price)
-                    ->where("currency", $trade->currency)
-                    ->where("legal", $trade->legal)
-                    ->where("number", ">", "0")
-                    ->orderBy('price', 'desc')
-                    ->orderBy('id', 'asc')
-                    ->lockForUpdate()
-                    ->sum('number');
-
-                if ($outSum < $trade->number) {
-                    $out = new TransactionOut();
-                    $out->user_id = 1068036; //机器人用户id
-                    $out->price = $trade->price;
-                    $out->total = bcsub($trade->number, $outSum);
-                    $out->number = bcsub($trade->number, $outSum);
-                    $out->currency = $trade->currency;
-                    $out->legal = $trade->legal;
-                    $out->create_time = time();
-                    $out->save();
-                }
-
-                $this->artificial('in',$trade,TransactionOut::class,TransactionIn::class);
+                $this->out(1068036,$trade->price,$trade->number,$trade->legal,$trade->currency);
             }else{
-                //若没有相同价格的买单，则默认机器人账号为买家
-                $inSum = TransactionIn::where("price", ">=", $trade->price)
-                    ->where("currency", $trade->currency)
-                    ->where("legal", $trade->legal)
-                    ->where("number", ">", "0")
-                    ->orderBy('price', 'desc')
-                    ->orderBy('id', 'asc')
-                    ->lockForUpdate()
-                    ->sum('number');
-
-                if ($inSum < $trade->number) {
-                    $out = new TransactionIn();
-                    $out->user_id = 1068036; //机器人用户id
-                    $out->price = $trade->price;
-                    $out->total = bcsub($trade->number, $inSum);
-                    $out->number = bcsub($trade->number, $inSum);
-                    $out->currency = $trade->currency;
-                    $out->legal = $trade->legal;
-                    $out->create_time = time();
-                    $out->save();
-                }
-
-                $this->artificial('out',$trade,TransactionIn::class,TransactionOut::class);
+                $this->in(1068036,$trade->price,$trade->number,$trade->legal,$trade->currency);
             }
 
             return $this->success('撮合成功!');
@@ -489,38 +447,111 @@ class TransactionController extends Controller
         }
     }
 
-    public function artificial($type,$trade,$transaction_class_one,$transaction_class_two){
+    /**
+     * On Sale
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function out($user_id,$price,$num,$legal_id,$currency_id)
+    {
+        $user_id = Users::getUserId();
+        $price = request()->input("price");
+        $num = request()->input("num");
+        $legal_id = request()->input("legal_id");
+        $currency_id = request()->input("currency_id");
+        if (empty($user_id) || empty($price) || empty($num) || empty($legal_id) || empty($currency_id)) {
+            return $this->error("Parameter Error");
+        }
+        $currency_match = CurrencyMatch::where('legal_id', $legal_id)
+            ->where('currency_id', $currency_id)
+            ->first();
+        if (!$currency_match) {
+            return $this->error('The Specified Transaction Pair Does Not Exist');
+        }
+        if ($currency_match->open_transaction != 1) {
+            return $this->error('You Have Not Opened The Transaction Function Of The Transaction Pair');
+        }
+        $exchange_rate = $currency_match->exchange_rate;
+        $quantity = bc_div(bc_mul($num, $exchange_rate), 100); //Transaction Rate
+        $real_quantity = $num + $quantity;
+        $has_num = 0;
+        $user = Users::find($user_id);
+
+        $legal = Currency::where("is_display", 1)
+            ->where("id", $legal_id)
+            ->where("is_legal", 1)
+            ->first();
+        $currency = Currency::where("is_display", 1)
+            ->where("id", $currency_id)
+            ->first();
+        if (empty($user) || empty($legal) || empty($currency)) {
+            return $this->error("Data Not Found");
+        }
+
+        //UseJAVAConduct Matchmaking
+        $use_java_match_trade = config('app.use_java_match_trade', 0);
+        if ($use_java_match_trade) {
+            $java_match_url = config('app.java_match_url', '');
+            $request_client = new Client();
+            $response = $request_client->post($java_match_url . '/api/transaction/out', [
+                'headers' => [
+                    'Authorization' => Token::getToken(),
+                ],
+                'form_params' => [
+                    'legal_id' => $legal_id,
+                    'currency_id' => $currency_id,
+                    'price' => $price,
+                    'num' => $num,
+                    'type' => 1,
+                ],
+            ]);
+
+            $result = $response->getBody()->getContents();
+            $result = json_decode($result);
+            if (!isset($result->type) || $result->type != 'ok') {
+                return $this->error($result->message);
+            }
+            DB::commit();
+            return $this->success("Operation Successful");
+        }
+
         try {
             DB::beginTransaction();
-
-            $currency_match = CurrencyMatch::where('legal_id', $trade->legal)
-                ->where('currency_id', $trade->currency)
-                ->first();
-
-            $user_currency = UsersWallet::where("user_id", $trade->user_id)
-                ->where("currency", $trade->currency)
+            $user_currency = UsersWallet::where("user_id", $user_id)
+                ->where("currency", $currency_id)
                 ->lockForUpdate()
                 ->first();
-
             if (empty($user_currency)) {
                 throw new \Exception("Please Add Your Wallet First");
             }
+            if (bc_comp($price, '0') <= 0 || bc_comp($num, '0') <= 0) {
+                throw new \Exception("Price And Quantity Must Be Greater Than0");
+            }
+            if (bc_comp($user_currency->change_balance, $real_quantity) < 0) {
+                throw new \Exception("Your Balance Is Insufficient,Please Make Sure That The Handling Charge Is Sufficient{$exchange_rate}%({$quantity})");
+            }
+            if (bc_comp($user_currency->lock_change_balance, '0') < 0) {
+                throw new \Exception("Your Frozen Fund Is Abnormal，No Selling");
+            }
 
-            $in = $transaction_class_one::where("price", ">=", $trade->price)
-                ->where("currency", $trade->currency)
-                ->where("legal", $trade->legal)
+            //Service Charge Deducted In Advance
+            $result = change_wallet_balance($user_currency, 2, -$quantity, AccountLog::MATCH_TRANSACTION_SELL_FEE, 'Service Charge Deducted For Hanging Sale,Quantity On Sale:' . $num . ',Rate:' . $exchange_rate . '%');
+            if ($result !== true) {
+                throw new \Exception($result);
+            }
+            //Find All Buy Orders Whose Price Is Higher Than Or Equal To The Current Sell Price
+            $in = TransactionIn::where("price", ">=", $price)
+                ->where("currency", $currency_id)
+                ->where("legal", $legal_id)
                 ->where("number", ">", "0")
                 ->orderBy('price', 'desc')
                 ->orderBy('id', 'asc')
                 ->lockForUpdate()
                 ->get();
-
-            $has_num = 0;
-            $num = $trade->number;
-            $user = Users::find($trade->user_id);
+            //dd($in);
             if (count($in) > 0) {
                 foreach ($in as $i) {
-                    if (bc_comp($has_num,$num) < 0) {
+                    if (bc_comp($has_num, $num) < 0) {
                         $shengyu_num = bc_sub($num, $has_num);
                         $this_num = 0;
                         if (bc_comp($i->number, $shengyu_num) > 0) {
@@ -530,23 +561,23 @@ class TransactionController extends Controller
                         }
                         $has_num = bc_add($has_num, $this_num);
                         if (bc_comp($this_num, '0') > 0) {
-                            if($type == 'in'){
-                                $transaction_class_two::transaction2($i, $this_num, $user, $trade->legal, $trade->currency);
-                            }else{
-                                $transaction_class_two::transaction2($i, $this_num, $user, $user_currency, $trade->legal, $trade->currency);
-                            }
+                            TransactionOut::transaction($i, $this_num, $user, $user_currency, $legal_id, $currency_id);
                         }
                     } else {
                         break;
                     }
                 }
             }
-
             $num = bc_sub($num, $has_num);
             if (bc_comp($num, '0') > 0) {
-                $out = new $transaction_class_two;
+                $out = new TransactionOut();
+                $out->user_id = $user_id;
+                $out->price = $price;
                 $out->number = $num;
-                $out->rate = $currency_match->exchange_rate;
+                $out->currency = $currency_id;
+                $out->legal = $legal_id;
+                $out->create_time = time();
+                $out->rate = $exchange_rate;
                 $out->save();
                 //Submit Sales Record Minus Transaction Currency
                 $result = change_wallet_balance($user_currency, 2, -$num, AccountLog::TRANSACTIONOUT_SUBMIT_REDUCE, 'Submit For Sale' . $currency_match->symbol . 'Deduction');
@@ -558,19 +589,157 @@ class TransactionController extends Controller
                 if ($result !== true) {
                     throw new \Exception($result);
                 }
-            }else{
-                if ($trade->delete() < 1) {
-                    throw new \Exception('撮合发生异常:清理失败,委托编号:' . $trade->id);
+            }
+            if ($currency_match->market_from != 2) {
+                Transaction::pushNews($currency_id, $legal_id);
+            }
+            DB::commit();
+            return $this->success("Operation Successful");
+        } catch (\Exception $ex) {
+            DB::rollBack();
+            return $this->error($ex->getMessage());
+        }
+    }
+
+    /**
+     * Hang Up
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function in($user_id,$price,$num,$legal_id,$currency_id)
+    {
+//        $user_id = Users::getUserId();
+//        $price = request()->input("price");
+//        $num = request()->input("num");
+//        $legal_id = request()->input("legal_id");
+//        $currency_id = request()->input("currency_id");
+
+        if (empty($user_id) || empty($price) || empty($num) || empty($legal_id) || empty($currency_id)) {
+            return $this->error("Parameter Error");
+        }
+        $currency_match = CurrencyMatch::where('legal_id', $legal_id)
+            ->where('currency_id', $currency_id)
+            ->first();
+        if (!$currency_match) {
+            return $this->error('The Specified Transaction Pair Does Not Exist');
+        }
+        if ($currency_match->open_transaction != 1) {
+            return $this->error('You Have Not Opened The Transaction Function Of The Transaction Pair');
+        }
+        $has_num = 0;
+        $legal = Currency::where("is_display", 1)
+            ->where("id", $legal_id)
+            ->where("is_legal", 1)
+            ->first();
+        $currency = Currency::where("is_display", 1)
+            ->where("id", $currency_id)
+            ->first();
+        $user = Users::find($user_id);
+        if (empty($user) || empty($legal) || empty($currency)) {
+            return $this->error("Data Not Found");
+        }
+
+        if (bc_comp($price, '0') <= 0 || bc_comp($num, '0') <= 0) {
+            return $this->error("Price And Quantity Must Be Greater Than0");
+        }
+
+        //UseJAVAConduct Matchmaking
+        $use_java_match_trade = config('app.use_java_match_trade', 0);
+        if ($use_java_match_trade) {
+            $java_match_url = config('app.java_match_url', '');
+            $request_client = new Client();
+            $response = $request_client->post($java_match_url . '/api/transaction/in', [
+                'headers' => [
+                    'Authorization' => Token::getToken(),
+                ],
+                'form_params' => [
+                    'legal_id' => $legal_id,
+                    'currency_id' => $currency_id,
+                    'price' => $price,
+                    'num' => $num,
+                    'type' => 1,
+                ],
+            ]);
+            $result = $response->getBody()->getContents();
+            $result = json_decode($result);
+            if (!isset($result->type) || $result->type != 'ok') {
+                return $this->error($result->message);
+            }
+            DB::commit();
+            return $this->success("Operation Successful");
+        }
+
+        try {
+            DB::beginTransaction();
+            //How To Buy Coin Wallet
+            $user_legal = UsersWallet::where("user_id", $user_id)
+                ->where("currency", $legal_id)
+                ->lockForUpdate()
+                ->first();
+            $all_balance = bc_mul($price, $num);
+            if (bc_comp($user_legal->change_balance, $all_balance) < 0) {
+                throw new \Exception('Sorry, Your Credit Is Running Low');
+            }
+
+            //Find All Sell Orders Whose Price Is Less Than Or Equal To The Current Price
+            $out = TransactionOut::where("price", "<=", $price)
+                ->where("number", ">", "0")
+                ->where("currency", $currency_id)
+                ->where("legal", $legal_id)
+                ->lockForUpdate()
+                ->orderBy('price', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+            if (count($out) > 0) {
+                foreach ($out as $o) {
+                    if (bc_comp($has_num, $num) < 0) {
+                        $shengyu_num = bc_sub($num, $has_num);
+                        $this_num = 0;
+                        if (bc_comp($o->number, $shengyu_num) > 0) {
+                            $this_num = $shengyu_num;
+                        } else {
+                            $this_num = $o->number;
+                        }
+                        $has_num = bc_add($has_num, $this_num);
+                        if (bc_comp($this_num, '0') > 0) {
+                            TransactionIn::transaction($o, $this_num, $user, $legal_id, $currency_id);
+                        }
+                    } else {
+                        break;
+                    }
                 }
             }
 
-            if ($currency_match->market_from != 2) {
-//                Transaction::pushNews($trade->currency, $trade->legal);
+            $remain_num = bcsub($num, $has_num); //Remaining Quantity After Matching
+            if (bc_comp($remain_num, '0') > 0) {
+                $in = new TransactionIn();
+                $in->user_id = $user_id;
+                $in->price = $price;
+                $in->number = $remain_num;
+                $in->currency = $currency_id;
+                $in->legal = $legal_id;
+                $in->create_time = time();
+                $in->save();
+                $all_balance = bc_mul($price, $remain_num);
+                //Submit Purchase Record Deduction
+                $result = change_wallet_balance($user_legal, 2, -$all_balance, AccountLog::TRANSACTIONIN_SUBMIT_REDUCE, 'Submit Linked Purchase' . $currency_match->symbol . 'Deduction');
+                if ($result !== true) {
+                    throw new \Exception($result);
+                }
+                //Submit Purchase Record Deduction Freeze
+                $result = change_wallet_balance($user_legal, 2, $all_balance, AccountLog::TRANSACTIONIN_SUBMIT_REDUCE, 'Submit Linked Purchase' . $currency_match->symbol . 'Frozen', true);
+                if ($result !== true) {
+                    throw new \Exception($result);
+                }
             }
+            if ($currency_match->market_from != 2) {
+                Transaction::pushNews($currency_id, $legal_id);
+            }
+
             DB::commit();
-            return true;
+            return $this->success("Operation Successful");
         } catch (\Exception $ex) {
-            DB::rollBack();
+            DB::rollback();
             return $this->error($ex->getMessage());
         }
     }
