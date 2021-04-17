@@ -158,26 +158,26 @@ class TransactionIn extends Model
                 'volume' => $total,
                 'now_price' => sctonum($out->price)
             ];
-//            MarketHour::batchWriteMarketData($currency_id, $legal_id, $num,sctonum($out->price), 1); //写入行情数据
-//            CurrencyQuotation::updateTodayPriceTable($data); //更新今日价格表
-//            //推送K线行情
-//            $market_hour = MarketHour::getTimelineInstance(5, $currency_id, $legal_id, 1, $now);
-//            $kline_data = [
-//                'type' => 'kline',
-//                'period' => '1min',
-//                'currency_id' => $currency_id,
-//                'currency_name' => $complete->currency_name,
-//                'legal_id' => $legal_id,
-//                'legal_name' => $complete->legal_name,
-//                'symbol' =>  $complete->currency_name . '/' . $complete->legal_name,
-//                'open' => $market_hour->start_price,
-//                'close' => $market_hour->end_price,
-//                'high' => $market_hour->highest,
-//                'low' => $market_hour->mminimum,
-//                'volume' => $market_hour->number,
-//                'time' => $now * 1000,
-//            ];
-//            UserChat::sendText($kline_data);
+            MarketHour::batchWriteMarketData($currency_id, $legal_id, $num,sctonum($out->price), 1); //写入行情数据
+            CurrencyQuotation::updateTodayPriceTable($data); //更新今日价格表
+            //推送K线行情
+            $market_hour = MarketHour::getTimelineInstance(5, $currency_id, $legal_id, 1, $now);
+            $kline_data = [
+                'type' => 'kline',
+                'period' => '1min',
+                'currency_id' => $currency_id,
+                'currency_name' => $complete->currency_name,
+                'legal_id' => $legal_id,
+                'legal_name' => $complete->legal_name,
+                'symbol' =>  $complete->currency_name . '/' . $complete->legal_name,
+                'open' => $market_hour->start_price,
+                'close' => $market_hour->end_price,
+                'high' => $market_hour->highest,
+                'low' => $market_hour->mminimum,
+                'volume' => $market_hour->number,
+                'time' => $now * 1000,
+            ];
+            UserChat::sendText($kline_data);
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

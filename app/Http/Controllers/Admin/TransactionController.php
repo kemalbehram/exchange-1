@@ -681,7 +681,7 @@ class TransactionController extends Controller
                 }
             }
             if ($currency_match->market_from != 2) {
-//                Transaction::pushNews($currency_id, $legal_id);
+                Transaction::pushNews($currency_id, $legal_id);
             }
 
             DB::commit();
