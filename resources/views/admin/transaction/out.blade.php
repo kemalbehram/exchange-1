@@ -159,7 +159,7 @@
                                 if(res.type == 'error'){
                                     layer.msg(res.message);
                                 } else {
-                                    // obj.del();
+                                    obj.del();
                                     layer.close(index);
                                 }
                             }

@@ -454,11 +454,11 @@ class TransactionController extends Controller
      */
     public function out($user_id,$price,$num,$legal_id,$currency_id)
     {
-        $user_id = Users::getUserId();
-        $price = request()->input("price");
-        $num = request()->input("num");
-        $legal_id = request()->input("legal_id");
-        $currency_id = request()->input("currency_id");
+//        $user_id = Users::getUserId();
+//        $price = request()->input("price");
+//        $num = request()->input("num");
+//        $legal_id = request()->input("legal_id");
+//        $currency_id = request()->input("currency_id");
         if (empty($user_id) || empty($price) || empty($num) || empty($legal_id) || empty($currency_id)) {
             return $this->error("Parameter Error");
         }
