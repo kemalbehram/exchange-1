@@ -434,7 +434,29 @@ class TransactionController extends Controller
 
             //查询是否存在可以撮合的订单
             if($type == 'in'){
+                //若没有相同价格的买单，则默认机器人账号为买家
+                $outSum = TransactionOut::where("price", ">=", $trade->price)
+                    ->where("currency", $trade->currency)
+                    ->where("legal", $trade->legal)
+                    ->where("number", ">", "0")
+                    ->orderBy('price', 'desc')
+                    ->orderBy('id', 'asc')
+                    ->lockForUpdate()
+                    ->sum('number');
 
+                if ($outSum < $trade->number) {
+                    $out = new TransactionOut();
+                    $out->user_id = 1068036; //机器人用户id
+                    $out->price = $trade->price;
+                    $out->total = bcsub($trade->number, $outSum);
+                    $out->number = bcsub($trade->number, $outSum);
+                    $out->currency = $trade->currency;
+                    $out->legal = $trade->legal;
+                    $out->create_time = time();
+                    $out->save();
+                }
+
+                $this->artificial('in',$trade,TransactionOut::class,TransactionIn::class);
             }else{
                 //若没有相同价格的买单，则默认机器人账号为买家
                 $inSum = TransactionIn::where("price", ">=", $trade->price)
@@ -458,7 +480,7 @@ class TransactionController extends Controller
                     $out->save();
                 }
 
-                $this->artificial($trade,TransactionIn::class);
+                $this->artificial('out',$trade,TransactionIn::class,TransactionOut::class);
             }
 
             return $this->success('撮合成功!');
@@ -467,7 +489,7 @@ class TransactionController extends Controller
         }
     }
 
-    public function artificial($trade,$transaction_class){
+    public function artificial($type,$trade,$transaction_class_one,$transaction_class_two){
         try {
             DB::beginTransaction();
 
@@ -484,7 +506,7 @@ class TransactionController extends Controller
                 throw new \Exception("Please Add Your Wallet First");
             }
 
-            $in = $transaction_class::where("price", ">=", $trade->price)
+            $in = $transaction_class_one::where("price", ">=", $trade->price)
                 ->where("currency", $trade->currency)
                 ->where("legal", $trade->legal)
                 ->where("number", ">", "0")
@@ -508,7 +530,11 @@ class TransactionController extends Controller
                         }
                         $has_num = bc_add($has_num, $this_num);
                         if (bc_comp($this_num, '0') > 0) {
-                            TransactionOut::transaction($i, $this_num, $user, $user_currency, $trade->legal, $trade->currency);
+                            if($type == 'in'){
+                                $transaction_class_two::transaction2($i, $this_num, $user, $trade->legal, $trade->currency);
+                            }else{
+                                $transaction_class_two::transaction2($i, $this_num, $user, $user_currency, $trade->legal, $trade->currency);
+                            }
                         }
                     } else {
                         break;
@@ -518,7 +544,7 @@ class TransactionController extends Controller
 
             $num = bc_sub($num, $has_num);
             if (bc_comp($num, '0') > 0) {
-                $out = new TransactionOut();
+                $out = new $transaction_class_two;
                 $out->number = $num;
                 $out->rate = $currency_match->exchange_rate;
                 $out->save();

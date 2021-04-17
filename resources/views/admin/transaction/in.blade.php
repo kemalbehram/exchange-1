@@ -67,6 +67,7 @@
 
     <table id="demo" lay-filter="test"></table>
     <script type="text/html" id="operate">
+        <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="match">撮合</a>
         <a class="layui-btn layui-btn-xs" lay-event="cancel">撤回</a>
         <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
     </script>
@@ -144,6 +145,23 @@
                                     layer.msg(res.message);
                                 } else {
                                     obj.del();
+                                    layer.close(index);
+                                }
+                            }
+                        });
+                    });
+                }else if(obj.event === 'match') {
+                    layer.confirm('真的确认要手动撮合吗?', function (index) {
+                        $.ajax({
+                            url:'/admin/exchange_match',
+                            type:'get',
+                            dataType:'json',
+                            data:{id: data.id, "type": 'in'},
+                            success:function (res) {
+                                if(res.type == 'error'){
+                                    layer.msg(res.message);
+                                } else {
+                                    // obj.del();
                                     layer.close(index);
                                 }
                             }
