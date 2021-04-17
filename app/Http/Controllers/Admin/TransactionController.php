@@ -436,9 +436,9 @@ class TransactionController extends Controller
 
             //查询是否存在可以撮合的订单
             if($type == 'in'){
-                $this->out(1068036,$trade->price,$trade->number,$trade->legal,$trade->currency);
+                $this->out($id,1068036,$trade->price,$trade->number,$trade->legal,$trade->currency);
             }else{
-                $this->in(1068036,$trade->price,$trade->number,$trade->legal,$trade->currency);
+                $this->in($id,1068036,$trade->price,$trade->number,$trade->legal,$trade->currency);
             }
 
             return $this->success('撮合成功!');
@@ -452,7 +452,7 @@ class TransactionController extends Controller
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function out($user_id,$price,$num,$legal_id,$currency_id)
+    public function out($id,$user_id,$price,$num,$legal_id,$currency_id)
     {
 //        $user_id = Users::getUserId();
 //        $price = request()->input("price");
@@ -513,10 +513,7 @@ class TransactionController extends Controller
                 throw new \Exception($result);
             }
             //Find All Buy Orders Whose Price Is Higher Than Or Equal To The Current Sell Price
-            $in = TransactionIn::where("price", ">=", $price)
-                ->where("currency", $currency_id)
-                ->where("legal", $legal_id)
-                ->where("number", ">", "0")
+            $in = TransactionIn::where("id", $id)
                 ->orderBy('price', 'desc')
                 ->orderBy('id', 'asc')
                 ->lockForUpdate()
@@ -579,7 +576,7 @@ class TransactionController extends Controller
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function in($user_id,$price,$num,$legal_id,$currency_id)
+    public function in($id,$user_id,$price,$num,$legal_id,$currency_id)
     {
 //        $user_id = Users::getUserId();
 //        $price = request()->input("price");
@@ -629,10 +626,7 @@ class TransactionController extends Controller
             }
 
             //Find All Sell Orders Whose Price Is Less Than Or Equal To The Current Price
-            $out = TransactionOut::where("price", "<=", $price)
-                ->where("number", ">", "0")
-                ->where("currency", $currency_id)
-                ->where("legal", $legal_id)
+            $out = TransactionOut::where("id", $id)
                 ->lockForUpdate()
                 ->orderBy('price', 'asc')
                 ->orderBy('id', 'asc')
