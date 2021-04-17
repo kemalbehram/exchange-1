@@ -414,4 +414,138 @@ class TransactionController extends Controller
             return $this->error($th->getMessage());
         }
     }
+
+    /**
+     * 手动撮合交易挂单
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function match(Request $request)
+    {
+        $id = $request->input('id', 0);
+        $type = $request->input('type', '');
+
+        try {
+            throw_if(!in_array($type, ['in', 'out']), new \Exception('交易类型异常'));
+            $transaction_class = $type == 'in' ? TransactionIn::class : TransactionOut::class;
+
+            //查询本单信息
+            $trade = $transaction_class::lockForupdate()->findOrFail($id);
+
+            //查询是否存在可以撮合的订单
+            if($type == 'in'){
+
+            }else{
+                //若没有相同价格的买单，则默认机器人账号为买家
+                $inSum = TransactionIn::where("price", ">=", $trade->price)
+                    ->where("currency", $trade->currency)
+                    ->where("legal", $trade->legal)
+                    ->where("number", ">", "0")
+                    ->orderBy('price', 'desc')
+                    ->orderBy('id', 'asc')
+                    ->lockForUpdate()
+                    ->sum('number');
+
+                if ($inSum < $trade->number) {
+                    $out = new TransactionIn();
+                    $out->user_id = 1068036; //机器人用户id
+                    $out->price = $trade->price;
+                    $out->total = bcsub($trade->number, $inSum);
+                    $out->number = bcsub($trade->number, $inSum);
+                    $out->currency = $trade->currency;
+                    $out->legal = $trade->legal;
+                    $out->create_time = time();
+                    $out->save();
+                }
+
+                $this->artificial($trade,TransactionIn::class);
+            }
+
+            return $this->success('撮合成功!');
+        } catch (\Throwable $th) {
+            return $this->error($th->getMessage());
+        }
+    }
+
+    public function artificial($trade,$transaction_class){
+        try {
+            DB::beginTransaction();
+
+            $currency_match = CurrencyMatch::where('legal_id', $trade->legal)
+                ->where('currency_id', $trade->currency)
+                ->first();
+
+            $user_currency = UsersWallet::where("user_id", $trade->user_id)
+                ->where("currency", $trade->currency)
+                ->lockForUpdate()
+                ->first();
+
+            if (empty($user_currency)) {
+                throw new \Exception("Please Add Your Wallet First");
+            }
+
+            $in = $transaction_class::where("price", ">=", $trade->price)
+                ->where("currency", $trade->currency)
+                ->where("legal", $trade->legal)
+                ->where("number", ">", "0")
+                ->orderBy('price', 'desc')
+                ->orderBy('id', 'asc')
+                ->lockForUpdate()
+                ->get();
+
+            $has_num = 0;
+            $num = $trade->number;
+            $user = Users::find($trade->user_id);
+            if (count($in) > 0) {
+                foreach ($in as $i) {
+                    if (bc_comp($has_num,$num) < 0) {
+                        $shengyu_num = bc_sub($num, $has_num);
+                        $this_num = 0;
+                        if (bc_comp($i->number, $shengyu_num) > 0) {
+                            $this_num = $shengyu_num;
+                        } else {
+                            $this_num = $i->number;
+                        }
+                        $has_num = bc_add($has_num, $this_num);
+                        if (bc_comp($this_num, '0') > 0) {
+                            TransactionOut::transaction($i, $this_num, $user, $user_currency, $trade->legal, $trade->currency);
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            $num = bc_sub($num, $has_num);
+            if (bc_comp($num, '0') > 0) {
+                $out = new TransactionOut();
+                $out->number = $num;
+                $out->rate = $currency_match->exchange_rate;
+                $out->save();
+                //Submit Sales Record Minus Transaction Currency
+                $result = change_wallet_balance($user_currency, 2, -$num, AccountLog::TRANSACTIONOUT_SUBMIT_REDUCE, 'Submit For Sale' . $currency_match->symbol . 'Deduction');
+                if ($result !== true) {
+                    throw new \Exception($result);
+                }
+                //Submit Sales Record(Increase Freeze)
+                $result = change_wallet_balance($user_currency, 2, $num, AccountLog::TRANSACTIONOUT_SUBMIT_REDUCE, 'Submit For Sale' . $currency_match->symbol . 'Frozen', true);
+                if ($result !== true) {
+                    throw new \Exception($result);
+                }
+            }else{
+                if ($trade->delete() < 1) {
+                    throw new \Exception('撮合发生异常:清理失败,委托编号:' . $trade->id);
+                }
+            }
+
+            if ($currency_match->market_from != 2) {
+//                Transaction::pushNews($trade->currency, $trade->legal);
+            }
+            DB::commit();
+            return true;
+        } catch (\Exception $ex) {
+            DB::rollBack();
+            return $this->error($ex->getMessage());
+        }
+    }
 }
