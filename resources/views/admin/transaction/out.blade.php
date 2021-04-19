@@ -62,6 +62,7 @@
     </div>
 
     <script type="text/html" id="operate">
+        <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="match">撮合</a>
         <a class="layui-btn layui-btn-xs" lay-event="cancel">撤回</a>
         <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
     </script>
@@ -111,6 +112,7 @@
 
             var data_table = table.on('tool(test)', function(obj) {
                 var data = obj.data;
+
                 if(obj.event === 'del') {
                     layer.confirm('删除后余额不退回,确定要删除吗?', function(index) {
                         // return layer.msg('此操作太危险,暂不支持');
@@ -133,6 +135,23 @@
                     layer.confirm('真的确认要撤回吗?', function (index) {
                         $.ajax({
                             url:'/admin/exchange_cancel',
+                            type:'get',
+                            dataType:'json',
+                            data:{id: data.id, "type": 'out'},
+                            success:function (res) {
+                                if(res.type == 'error'){
+                                    layer.msg(res.message);
+                                } else {
+                                    obj.del();
+                                    layer.close(index);
+                                }
+                            }
+                        });
+                    });
+                }else if(obj.event === 'match') {
+                    layer.confirm('真的确认要手动撮合吗?', function (index) {
+                        $.ajax({
+                            url:'/admin/exchange_match',
                             type:'get',
                             dataType:'json',
                             data:{id: data.id, "type": 'out'},

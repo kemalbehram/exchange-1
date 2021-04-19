@@ -214,6 +214,7 @@ Route::namespace('Admin')->prefix('admin')->middleware(['admin_auth'])->group(fu
         Route::get('out_list', 'TransactionController@outList');
         Route::get('cny_list', 'TransactionController@cnyList');
         Route::get('trade', 'TransactionController@trade'); //撮合交易
+        Route::get('exchange_match', 'TransactionController@match'); //后台手动撮合
         Route::get('exchange_cancel', 'TransactionController@cancel'); //后台撤单
         Route::get('exchange_del', 'TransactionController@del'); //后台撤单
     });
