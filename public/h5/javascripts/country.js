@@ -1,10 +1,10 @@
 country= [
-  {
-    "area_code": "+86",
-    "country_id": 37,
-    "name_cn": "中国大陆",
-    "name_en": "China"
-  },
+  // {
+  //   "area_code": "+86",
+  //   "country_id": 37,
+  //   "name_cn": "中国大陆",
+  //   "name_en": "China"
+  // },
   {
     "area_code": "+852",
     "country_id": 71,
