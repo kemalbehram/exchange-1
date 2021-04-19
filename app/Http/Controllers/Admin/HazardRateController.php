@@ -117,8 +117,8 @@ class HazardRateController extends Controller
     public function totalLists(Request $request)
     {
         $limit = $request->input('limit', 10);
-        $legal_id = $request->input('legal_id', 0);
-        $type = $request->input('type', 0);
+        $legal_id = $request->input('legal_id', -1);
+        $type = $request->input('type', -1);
         $operate = $request->input('operate', -1);
         $hazard_rate = $request->input('hazard_rate', 0);
         /*
@@ -136,7 +136,7 @@ class HazardRateController extends Controller
                 $legal_id != -1 && $query->where('legal', $legal_id);
             })
             ->select('user_id')
-            ->selectRaw('SUM((CASE `type` WHEN 1 THEN `update_price` - `price` WHEN 2 THEN `price` - `update_price` END) * `number`) AS `profits_total`')
+            ->selectRaw('SUM((CASE `type` WHEN 1 THEN cast(`update_price` as signed) - cast(`price` as signed) WHEN 2 THEN cast(`price` as signed) - cast(`update_price` as signed) END) * `number`) AS `profits_total`')
             ->selectRaw('SUM(`caution_money`) AS `caution_money_total`')
             ->groupBy('user_id')
             ->paginate($limit);
