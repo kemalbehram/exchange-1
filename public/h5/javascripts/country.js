@@ -649,6 +649,12 @@ country= [
     "name_en": "America"
   },
   {
+    "area_code": "+1",
+    "country_id": '',
+    "name_cn": "美国",
+    "name_en": "United States"
+  },
+  {
     "area_code": "+389",
     "country_id": 211,
     "name_cn": "马其顿",
