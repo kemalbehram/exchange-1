@@ -409,10 +409,10 @@
                         // window.location.href = "setpass.html?user_string=" + email + "&" + "code=" +emverify;
                         if (get_param('code')) {
                             window.location.href = "setpass.html?user_string=" + email + "&" + "code=" +
-                                emverify + '&cod=' + get_param('code')+ "&nationality="+nationality;
+                                emverify + '&cod=' + get_param('code')+ "&nationality="+nationality + "&country_code="+country_code ;
                         } else {
                             window.location.href = "setpass.html?user_string=" + email + "&" + "code=" +
-                                emverify+ "&nationality="+nationality;
+                                emverify+ "&nationality="+nationality + "&country_code="+country_code ;
                         }
                     } else {
                         layer_msg(data.message);
